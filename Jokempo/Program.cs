@@ -1,164 +1,192 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
-Dictionary<string, (int vitórias, int empates, int derrotas)> jogadores = new Dictionary<string, (int, int, int)>();
-
-Console.OutputEncoding = System.Text.Encoding.UTF8;
-
-Console.WriteLine("😀 Olá! Vamos jogar Jokempo?");
-Console.WriteLine("1 - Sim ou 0 - Não");
-
-var continuar = ValidarEntrada('0', '1');
-
-while (continuar != '0')
+class JokempoMenosUm
 {
-    string nomeJogador = ObterNomeJogador();
+    // Ranking: chave = nome do jogador, valor = (vitórias, empates, derrotas)
+    static Dictionary<string, (int vitorias, int empates, int derrotas)> ranking = new Dictionary<string, (int, int, int)>();
+    static Random random = new Random();
 
-    if (!jogadores.ContainsKey(nomeJogador))
+    static void Main()
     {
-        jogadores[nomeJogador] = (0, 0, 0);
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
+        bool sair = false;
+
+        while (!sair)
+        {
+            Console.Clear();
+            Console.WriteLine("😀 Bem-vindo ao Jokempo Menos Um!");
+            Console.WriteLine("1 - Jogar");
+            Console.WriteLine("2 - Exibir Ranking");
+            Console.WriteLine("0 - Sair");
+            string opcaoMenu = GetValidOption(new List<string> { "0", "1", "2" });
+
+            switch (opcaoMenu)
+            {
+                case "1":
+                    Jogar();
+                    break;
+                case "2":
+                    ExibirRanking();
+                    Console.WriteLine("\nDigite 1 para voltar ao menu principal ou 0 para sair:");
+                    string volta = GetValidOption(new List<string> { "0", "1" });
+                    if (volta == "0")
+                        sair = true;
+                    break;
+                case "0":
+                    sair = true;
+                    break;
+            }
+        }
+
+        Console.WriteLine("👋 Tchau! Até a próxima!");
+        Console.ReadLine();
     }
 
-    Console.WriteLine($"Bem-vindo, {nomeJogador}! Vamos começar...");
-
-    do
+    // Método para jogar uma sessão com um jogador
+    static void Jogar()
     {
-        char opcao = ObterOpcaoJogador();
-        var opcaoPC = new Random().Next(3);
-        bool vitoria = JogarRodada(opcao, opcaoPC, nomeJogador);
-        AtualizarEstatisticas(nomeJogador, vitoria, opcao, opcaoPC);
+        Console.Clear();
+        Console.WriteLine("Qual é o seu nome?");
+        string nomeJogador = Console.ReadLine().Trim();
+        while (string.IsNullOrEmpty(nomeJogador))
+        {
+            Console.WriteLine("Nome inválido. Por favor, digite seu nome:");
+            nomeJogador = Console.ReadLine().Trim();
+        }
+        // Registra automaticamente o jogador se não estiver no ranking
+        if (!ranking.ContainsKey(nomeJogador))
+            ranking[nomeJogador] = (0, 0, 0);
 
-        Console.WriteLine("\nQuer jogar de novo?");
-        Console.WriteLine("1 - Sim, 0 - Não");
-    } while (Console.ReadKey().KeyChar == '1');
+        bool continuarPartida = true;
+        while (continuarPartida)
+        {
+            Console.Clear();
+            Console.WriteLine($"Jogador: {nomeJogador}");
+            // Jogada para cada mão do jogador
+            string maoEsquerda = ObterJogada("mão esquerda");
+            string maoDireita = ObterJogada("mão direita");
+            Console.WriteLine($"\nVocê escolheu: Mão esquerda: {maoEsquerda}, Mão direita: {maoDireita}");
 
-    Console.WriteLine("\nO que deseja fazer agora?");
-    Console.WriteLine("1 - Continuar com outro jogador, 2 - Listar jogadores e estatísticas, 0 - Sair");
-    continuar = ValidarEntrada('0', '1', '2');
+            // Jogada do computador 
+            string jogadaPC = ObterJogadaComputador();
+            Console.WriteLine($"O PC escolheu: {jogadaPC}");
 
-    if (continuar == '2')
-    {
-        ListarEstatisticasJogadores(ref continuar);
-    }
-}
+            // O jogador decide qual mão usar para a comparação final
+            string maoEscolhida = ObterMaoEscolhida();
+            string jogadaJogador = maoEscolhida == "esquerda" ? maoEsquerda : maoDireita;
+            
+            string jogadaPCFinal = jogadaPC.Split('-')[0];
 
-Console.WriteLine("👋 Tchau! Até a próxima");
+            // Avalia a jogada (Pedra vence Tesoura, Tesoura vence Papel, Papel vence Pedra)
+            bool vitoria = AvaliarJogada(jogadaJogador, jogadaPCFinal);
+            AtualizarRanking(nomeJogador, vitoria, jogadaJogador, jogadaPCFinal);
 
-char ValidarEntrada(params char[] opcoesValidas)
-{
-    char opcao = Console.ReadKey().KeyChar;
-    while (Array.IndexOf(opcoesValidas, opcao) == -1)
-    {
-        Console.WriteLine("\nOpção inválida. Tente novamente.");
-        opcao = Console.ReadKey().KeyChar;
-    }
-    return opcao;
-}
+            Console.WriteLine("\nResultado do round:");
+            if (jogadaJogador == jogadaPCFinal)
+                Console.WriteLine("Empate!");
+            else if (vitoria)
+                Console.WriteLine("Você venceu!");
+            else
+                Console.WriteLine("O PC venceu!");
 
-// Métodos auxiliares
-string ObterNomeJogador()
-{
-    Console.WriteLine("\nQual é o seu nome?");
-    string nomeJogador = Console.ReadLine();
-
-    while (string.IsNullOrEmpty(nomeJogador))
-    {
-        Console.WriteLine("Você precisa digitar o seu nome. Pode ser o seu apelido...");
-        nomeJogador = Console.ReadLine();
-    }
-
-    return nomeJogador;
-}
-
-char ObterOpcaoJogador()
-{
-    Console.WriteLine("Escolha uma opção: 0 - Pedra ✊, 1 - Papel ✋ ou 2 - Tesoura ✌");
-    char opcao = Console.ReadKey().KeyChar;
-    while (opcao != '0' && opcao != '1' && opcao != '2')
-    {
-        Console.WriteLine("\nOpção inválida. Escolha 0, 1 ou 2.");
-        opcao = Console.ReadKey().KeyChar;
-    }
-    return opcao;
-}
-
-bool JogarRodada(char opcao, int opcaoPC, string nomeJogador)
-{
-    bool vitoria = false;
-
-    switch (opcao)
-    {
-        case '0':
-            Console.WriteLine("\nVocê escolheu Pedra ✊!");
-            vitoria = (opcaoPC == 2);
-            break;
-        case '1':
-            Console.WriteLine("\nVocê escolheu Papel ✋");
-            vitoria = (opcaoPC == 0);
-            break;
-        case '2':
-            Console.WriteLine("\nVocê escolheu Tesoura ✌");
-            vitoria = (opcaoPC == 1);
-            break;
+            Console.WriteLine("\nDeseja jogar outra partida com este jogador? (1 - Sim, 0 - Não)");
+            string op = GetValidOption(new List<string> { "0", "1" });
+            if (op == "0")
+                continuarPartida = false;
+        }
     }
 
-    switch (opcaoPC)
+    // Captura e valida uma opção dentre as opções válidas
+    static string GetValidOption(List<string> validOptions)
     {
-        case 0:
-            Console.WriteLine("\nEu escolhi Pedra ✊!");
-            break;
-        case 1:
-            Console.WriteLine("\nEu escolhi Papel ✋");
-            break;
-        case 2:
-            Console.WriteLine("\nEu escolhi Tesoura ✌");
-            break;
+        string input = Console.ReadLine().Trim();
+        while (!validOptions.Contains(input))
+        {
+            Console.WriteLine("Opção inválida. Por favor, tente novamente:");
+            input = Console.ReadLine().Trim();
+        }
+        return input;
     }
 
-    if (int.Parse(opcao.ToString()) == opcaoPC)
+    // Solicita a jogada para uma determinada mão (ex: "mão esquerda" ou "mão direita")
+    static string ObterJogada(string descricao)
     {
-        Console.WriteLine("\n😀 Legal! Nós empatamos!");
-    }
-    else if (vitoria)
-    {
-        Console.WriteLine("\n😀 Parabéns! Você venceu.");
-    }
-    else
-    {
-        Console.WriteLine("\n😀 Haha, eu venci! Não foi dessa vez.");
+        Console.WriteLine($"Escolha sua jogada para a {descricao}: Pedra, Papel ou Tesoura");
+        string move = Console.ReadLine().Trim();
+        List<string> validMoves = new List<string> { "Pedra", "Papel", "Tesoura" };
+        while (!validMoves.Contains(move))
+        {
+            Console.WriteLine("Jogada inválida. Escolha entre Pedra, Papel ou Tesoura:");
+            move = Console.ReadLine().Trim();
+        }
+        return move;
     }
 
-    return vitoria;
-}
-
-void AtualizarEstatisticas(string nomeJogador, bool vitoria, char opcao, int opcaoPC)
-{
-    if (int.Parse(opcao.ToString()) == opcaoPC)
+    // Retorna uma jogada aleatória para cada mão do PC no formato "move1-move2"
+    static string ObterJogadaComputador()
     {
-        jogadores[nomeJogador] = (jogadores[nomeJogador].vitórias, jogadores[nomeJogador].empates + 1, jogadores[nomeJogador].derrotas);
+        string[] moves = { "Pedra", "Papel", "Tesoura" };
+        string left = moves[random.Next(moves.Length)];
+        string right = moves[random.Next(moves.Length)];
+        return left + "-" + right;
     }
-    else if (vitoria)
-    {
-        jogadores[nomeJogador] = (jogadores[nomeJogador].vitórias + 1, jogadores[nomeJogador].empates, jogadores[nomeJogador].derrotas);
-    }
-    else
-    {
-        jogadores[nomeJogador] = (jogadores[nomeJogador].vitórias, jogadores[nomeJogador].empates, jogadores[nomeJogador].derrotas + 1);
-    }
-}
 
-void ListarEstatisticasJogadores(ref char continuar)
-{
-    Console.WriteLine("\nJogadores e suas estatísticas:\n");
-    Console.WriteLine("===================================================================");
-    foreach (var jogador in jogadores)
+    // Solicita qual mão o jogador deseja usar para a comparação final
+    static string ObterMaoEscolhida()
     {
-        Console.WriteLine($"{jogador.Key}: {jogador.Value.vitórias} vitórias, {jogador.Value.empates} empates, {jogador.Value.derrotas} derrotas");
+        Console.WriteLine("\nEscolha qual mão deseja usar para a comparação final (esquerda ou direita):");
+        string escolha = Console.ReadLine().Trim().ToLower();
+        while (escolha != "esquerda" && escolha != "direita")
+        {
+            Console.WriteLine("Opção inválida. Digite 'esquerda' ou 'direita':");
+            escolha = Console.ReadLine().Trim().ToLower();
+        }
+        return escolha;
     }
-    Console.WriteLine("===================================================================\n");
 
-    Console.WriteLine("E agora? Quer iniciar uma nova partida?");
-    Console.WriteLine("1 - Sim ou 0 - Não");
+    // Avalia se a jogada do jogador vence a do PC, de acordo com as regras
+    static bool AvaliarJogada(string jogador, string pc)
+    {
+        if (jogador == pc)
+            return false; // empate
+        if (jogador == "Pedra" && pc == "Tesoura") return true;
+        if (jogador == "Tesoura" && pc == "Papel") return true;
+        if (jogador == "Papel" && pc == "Pedra") return true;
+        return false;
+    }
 
-    continuar = ValidarEntrada('0', '1');
+    // Atualiza o ranking do jogador de forma segura
+    static void AtualizarRanking(string nome, bool vitoria, string jogada, string pc)
+    {
+        var stats = ranking[nome];
+        if (jogada == pc)
+            stats.empates++;
+        else if (vitoria)
+            stats.vitorias++;
+        else
+            stats.derrotas++;
+        ranking[nome] = stats;
+    }
+
+    // Exibe o ranking ordenado por número de vitórias
+    static void ExibirRanking()
+    {
+        Console.Clear();
+        Console.WriteLine("🏆 Ranking de Jogadores:");
+        if (ranking.Count == 0)
+        {
+            Console.WriteLine("Nenhum jogador cadastrado.");
+        }
+        else
+        {
+            foreach (var kv in ranking.OrderByDescending(x => x.Value.vitorias))
+            {
+                Console.WriteLine($"{kv.Key}: {kv.Value.vitorias} vitórias, {kv.Value.empates} empates, {kv.Value.derrotas} derrotas");
+            }
+        }
+        Console.WriteLine("\nPressione Enter para continuar...");
+        Console.ReadLine();
+    }
 }
