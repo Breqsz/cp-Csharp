@@ -26,10 +26,11 @@ Compile e execute o código.
 
 Siga as instruções no console para jogar o jogo.
 
-Tecnologias Utilizadas
-C#
+<h3>Tecnologias Utilizadas<h3>
 
-.NET (ou qualquer ambiente C# compatível)
+   C#
+
+   .NET (ou qualquer ambiente C# compatível)
 
 Checkpoint - Matéria de C#
 Este projeto é um checkpoint da matéria de C#. Durante o desenvolvimento, foram aplicados conceitos essenciais da linguagem C#, como:
@@ -42,11 +43,11 @@ Estruturas condicionais e de repetição
 
 Dicionários para armazenamento de dados
 
-Integrantes
-Guilherme Rocha Bianchini
+## Integrantes
+ # Guilherme Rocha Bianchini
 
-Vinicius do Carmo Fonseca Freitas
+ # Vinicius do Carmo Fonseca Freitas
 
-Pedro Henrique Pedrosa Tavares
+ # Pedro Henrique Pedrosa Tavares
 
-João Arthur Pajaro
+ # João Arthur Pajaro
